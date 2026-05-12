@@ -87,6 +87,21 @@ export function initializeTheme(): void {
     mediaQuery()?.addEventListener('change', handleSystemThemeChange);
 }
 
+export function toggleAppearance(): void {
+    // Determine the currently resolved appearance and flip it.
+    const resolved: ResolvedAppearance = isDarkMode(currentAppearance) ? 'dark' : 'light';
+    const newMode: ResolvedAppearance = resolved === 'dark' ? 'light' : 'dark';
+
+    currentAppearance = newMode;
+
+    // Persist choice
+    localStorage.setItem('appearance', newMode);
+    setCookie('appearance', newMode);
+
+    applyTheme(newMode);
+    notify();
+}
+
 export function useAppearance(): UseAppearanceReturn {
     const appearance: Appearance = useSyncExternalStore(
         subscribe,
