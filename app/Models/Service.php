@@ -11,4 +11,9 @@ class Service extends Model
         'price',
         'unit',
     ];
+
+    public function transactions()
+    {
+        return $this->hasMany(Transactions::class);
+    }
 }
