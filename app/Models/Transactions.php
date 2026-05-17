@@ -11,6 +11,7 @@ class Transactions extends Model
         'admin_id',
         'customer_id',
         'service_id',
+        'quantity',
         'total_price',
         'status',
         'payment_method',
