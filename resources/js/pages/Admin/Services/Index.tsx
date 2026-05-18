@@ -24,33 +24,60 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { CirclePlus, PenSquare, Trash2 } from 'lucide-react';
-import { Ellipsis } from 'lucide-react';
+import { CirclePlus, PenSquare, Trash2, Ellipsis } from 'lucide-react';
+import ServiceSheet from '@/components/ui/sheets/ServiceSheet';
 import { useState } from 'react';
 import {
     Sheet,
     SheetTrigger,
-    SheetContent,
-    SheetHeader,
-    SheetTitle,
 } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 
 export default function Index({ services }: { services: any }) {
     const [open, setOpen] = useState(false);
 
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const createForm = useForm({
         service_name: '',
         price: '',
         unit: '',
     });
 
+    const editForm = useForm({
+        service_name: '',
+        price: '',
+        unit: '',
+    });
+
+    const [editingService, setEditingService] = useState<any | null>(null);
+    const [editOpen, setEditOpen] = useState(false);
+
     function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
-        post('/services', {
+        createForm.post('/services', {
             onSuccess: () => {
-                reset();
+                createForm.reset();
                 setOpen(false);
+            },
+        });
+    }
+
+    function openEdit(service: any) {
+        setEditingService(service);
+        editForm.setData('service_name', service.service_name);
+        editForm.setData('price', service.price);
+        editForm.setData('unit', service.unit);
+        setEditOpen(true);
+    }
+
+    function handleEditSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        const ok = window.confirm('Confirm changes to this service?');
+        if (!ok || !editingService) return;
+
+        editForm.put(`/services/${editingService.id}`, {
+            onSuccess: () => {
+                setEditOpen(false);
+                setEditingService(null);
             },
         });
     }
@@ -69,103 +96,8 @@ export default function Index({ services }: { services: any }) {
                                 Add New Service
                             </Button>
                         </SheetTrigger>
-                        <SheetContent side="right" className="max-w-md">
-                            <SheetHeader>
-                                <SheetTitle>Add New Service</SheetTitle>
-                            </SheetHeader>
 
-                            <form
-                                onSubmit={handleSubmit}
-                                className="flex h-full w-full flex-col justify-between gap-4 p-4"
-                            >
-                                <div className="space-y-4">
-                                    <div>
-                                        <Label htmlFor="service_name">
-                                            Service Name
-                                        </Label>
-                                        <Input
-                                            id="service_name"
-                                            value={data.service_name}
-                                            onChange={(e) =>
-                                                setData(
-                                                    'service_name',
-                                                    e.target.value,
-                                                )
-                                            }
-                                            disabled={processing}
-                                        />
-                                        {errors.service_name && (
-                                            <p className="mt-1 text-sm text-red-600">
-                                                {errors.service_name}
-                                            </p>
-                                        )}
-                                    </div>
-
-                                    <div className="grid w-full grid-cols-2 gap-2">
-                                        <div>
-                                            <Label htmlFor="price">Price</Label>
-                                            <Input
-                                                id="price"
-                                                type="number"
-                                                step="50"
-                                                min="0"
-                                                value={data.price}
-                                                onChange={(e) =>
-                                                    setData(
-                                                        'price',
-                                                        e.target.value,
-                                                    )
-                                                }
-                                                disabled={processing}
-                                            />
-                                            {errors.price && (
-                                                <p className="mt-1 text-sm text-red-600">
-                                                    {errors.price}
-                                                </p>
-                                            )}
-                                        </div>
-
-                                        <div>
-                                            <Label htmlFor="unit">Unit</Label>
-                                            <Select
-                                                value={data.unit}
-                                                onValueChange={(val) =>
-                                                    setData('unit', val)
-                                                }
-                                                disabled={processing}
-                                            >
-                                                <SelectTrigger id="unit" className='w-full'>
-                                                    <SelectValue placeholder="Select unit" />
-                                                </SelectTrigger>
-                                                <SelectContent>
-                                                    <SelectItem value="kg">
-                                                        kg
-                                                    </SelectItem>
-                                                    <SelectItem value="pcs">
-                                                        pcs
-                                                    </SelectItem>
-                                                </SelectContent>
-                                            </Select>
-                                            {errors.unit && (
-                                                <p className="mt-1 text-sm text-red-600">
-                                                    {errors.unit}
-                                                </p>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="w-full">
-                                    <Button
-                                        type="submit"
-                                        className="w-full"
-                                        disabled={processing}
-                                    >
-                                        {processing ? 'Creating...' : 'Create'}
-                                    </Button>
-                                </div>
-                            </form>
-                        </SheetContent>
+                        <ServiceSheet form={createForm} onSubmit={handleSubmit} title="Add New Service" submitLabel="Create" idPrefix="create" />
                     </Sheet>
                 </div>
 
@@ -178,7 +110,7 @@ export default function Index({ services }: { services: any }) {
                                     <TableHead>Service Name</TableHead>
                                     <TableHead>Unit</TableHead>
                                     <TableHead>Price</TableHead>
-                                    <TableHead className='text-right'></TableHead>
+                                    <TableHead className='text-right' />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -206,7 +138,7 @@ export default function Index({ services }: { services: any }) {
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align='end'>
-                                                    <DropdownMenuItem>
+                                                    <DropdownMenuItem onClick={() => openEdit(service)}>
                                                         <PenSquare className="h-4 w-4" />
                                                         Edit
                                                     </DropdownMenuItem>
@@ -228,6 +160,10 @@ export default function Index({ services }: { services: any }) {
                         </div>
                     )}
                 </div>
+
+                <Sheet open={editOpen} onOpenChange={setEditOpen}>
+                    <ServiceSheet form={editForm} onSubmit={handleEditSubmit} title="Edit Service" submitLabel="Save" idPrefix="edit" />
+                </Sheet>
             </div>
         </>
     );
