@@ -15,7 +15,13 @@ import {
     DropdownMenuContent,
     DropdownMenuItem,
 } from '@/components/ui/dropdown-menu';
-import { CirclePlus, PenSquare, Trash2, Ellipsis, PlusCircle } from 'lucide-react';
+import {
+    CirclePlus,
+    PenSquare,
+    Trash2,
+    Ellipsis,
+    PlusCircle,
+} from 'lucide-react';
 import ServiceSheet from '@/components/ui/sheets/ServiceSheet';
 import {
     AlertDialog,
@@ -185,7 +191,7 @@ export default function Index({ services }: { services: any }) {
                             </TableBody>
                         </Table>
                     ) : (
-                        <Card className="gap-2 items-center justify-center bg-muted/50 py-12">
+                        <Card className="items-center justify-center gap-2 bg-muted/40 py-12">
                             <PlusCircle className="h-12 w-12 text-muted-foreground/75" />
                             <div>
                                 <p className="text-center text-lg font-medium">

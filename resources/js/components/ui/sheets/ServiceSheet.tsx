@@ -28,9 +28,9 @@ export function ServiceSheet({ form, onSubmit, title = 'Service', submitLabel = 
         <SheetTitle>{title}</SheetTitle>
       </SheetHeader>
 
-      <form onSubmit={onSubmit} className="flex h-full w-full flex-col justify-between gap-4 p-4">
+      <form onSubmit={onSubmit} className="flex h-full w-full flex-col justify-between gap-6 p-6">
         <div className="space-y-4">
-          <div>
+          <div className='space-y-2'>
             <Label htmlFor={`${prefix}service_name`}>Service Name</Label>
             <Input
               id={`${prefix}service_name`}
@@ -42,7 +42,7 @@ export function ServiceSheet({ form, onSubmit, title = 'Service', submitLabel = 
           </div>
 
           <div className="grid w-full grid-cols-2 gap-2">
-            <div>
+            <div className='space-y-2'>
               <Label htmlFor={`${prefix}price`}>Price</Label>
               <Input
                 id={`${prefix}price`}
@@ -56,7 +56,7 @@ export function ServiceSheet({ form, onSubmit, title = 'Service', submitLabel = 
               {form.errors.price && <p className="mt-1 text-sm text-red-600">{form.errors.price}</p>}
             </div>
 
-            <div>
+            <div className='space-y-2'>
               <Label htmlFor={`${prefix}unit`}>Unit</Label>
               <Select value={form.data.unit} onValueChange={(val) => form.setData('unit', val)} disabled={form.processing}>
                 <SelectTrigger id={`${prefix}unit`} className="w-full">
