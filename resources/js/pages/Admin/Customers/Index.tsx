@@ -1,27 +1,6 @@
-import { Head, useForm } from '@inertiajs/react';
-import { index } from '@/routes/customers';
-import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableHead,
-} from '@/components/ui/table';
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
-import {
-    PenSquare,
-    Trash2,
-    Ellipsis,
-    UserRoundPlus,
-} from 'lucide-react';
-import ServiceSheet from '@/components/ui/sheets/ServiceSheet';
+import { Head, router, useForm } from '@inertiajs/react';
+import { UserRoundPlus, PenSquare, Trash2, Ellipsis } from 'lucide-react';
+import { useState } from 'react';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -32,38 +11,81 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { router } from '@inertiajs/react';
-import { useState } from 'react';
-import { Sheet, SheetTrigger } from '@/components/ui/sheet';
-import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { Sheet, SheetTrigger } from '@/components/ui/sheet';
+import CustomerSheet from '@/components/ui/sheets/CustomerSheet';
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableCell,
+    TableHead,
+} from '@/components/ui/table';
+import { index, store, update, destroy } from '@/routes/customers';
 
-export default function Index({ services }: { services: any }) {
+type Customer = {
+    id: number;
+    phone: string;
+    address: string;
+    user: {
+        id: number;
+        name: string;
+        email: string;
+    };
+};
+
+type PaginatedCustomers = {
+    data: Customer[];
+    from: number | null;
+};
+
+type CustomerFormData = {
+    name: string;
+    email: string;
+    password: string;
+    password_confirmation: string;
+    phone: string;
+    address: string;
+};
+
+const initialFormData: CustomerFormData = {
+    name: '',
+    email: '',
+    password: '',
+    password_confirmation: '',
+    phone: '',
+    address: '',
+};
+
+export default function Index({
+    customers,
+}: {
+    customers: PaginatedCustomers;
+}) {
     const [open, setOpen] = useState(false);
-
-    const createForm = useForm({
-        service_name: '',
-        price: '',
-        unit: '',
-    });
-
-    const editForm = useForm({
-        service_name: '',
-        price: '',
-        unit: '',
-    });
-
-    const [editingService, setEditingService] = useState<any | null>(null);
     const [editOpen, setEditOpen] = useState(false);
+    const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
     const [confirmOpen, setConfirmOpen] = useState(false);
-    const [confirmAction, setConfirmAction] = useState<
-        'edit' | 'delete' | null
-    >(null);
-    const [pendingService, setPendingService] = useState<any | null>(null);
+    const [confirmAction, setConfirmAction] = useState<'edit' | 'delete' | null>(
+        null,
+    );
+    const [pendingCustomer, setPendingCustomer] = useState<Customer | null>(null);
 
-    function handleSubmit(e: React.FormEvent) {
+    const createForm = useForm<CustomerFormData>(initialFormData);
+    const editForm = useForm<CustomerFormData>(initialFormData);
+
+    function handleCreateSubmit(e: React.FormEvent) {
         e.preventDefault();
-        createForm.post('/services', {
+
+        createForm.post(store.url(), {
             onSuccess: () => {
                 createForm.reset();
                 setOpen(false);
@@ -71,18 +93,25 @@ export default function Index({ services }: { services: any }) {
         });
     }
 
-    function openEdit(service: any) {
-        setEditingService(service);
-        editForm.setData('service_name', service.service_name);
-        editForm.setData('price', service.price);
-        editForm.setData('unit', service.unit);
+    function openEdit(customer: Customer) {
+        setEditingCustomer(customer);
+        editForm.setData('name', customer.user.name);
+        editForm.setData('email', customer.user.email);
+        editForm.setData('password', '');
+        editForm.setData('password_confirmation', '');
+        editForm.setData('phone', customer.phone);
+        editForm.setData('address', customer.address);
         setEditOpen(true);
     }
 
     function handleEditSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!editingService) return;
-        setPendingService(editingService);
+
+        if (!editingCustomer) {
+            return;
+        }
+
+        setPendingCustomer(editingCustomer);
         setConfirmAction('edit');
         setConfirmOpen(true);
     }
@@ -90,9 +119,12 @@ export default function Index({ services }: { services: any }) {
     return (
         <>
             <Head title="Customers" />
+
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="flex w-full items-center justify-between gap-4">
-                    <h2 className="text-2xl font-semibold"><span className="text-primary">CleanLab</span> Customers</h2>
+                    <h2 className="text-2xl font-semibold">
+                        <span className="text-primary">CleanLab</span> Customers
+                    </h2>
 
                     <Sheet open={open} onOpenChange={setOpen}>
                         <SheetTrigger asChild>
@@ -102,9 +134,9 @@ export default function Index({ services }: { services: any }) {
                             </Button>
                         </SheetTrigger>
 
-                        <ServiceSheet
+                        <CustomerSheet
                             form={createForm}
-                            onSubmit={handleSubmit}
+                            onSubmit={handleCreateSubmit}
                             title="Register Customer"
                             submitLabel="Register"
                             idPrefix="create"
@@ -112,9 +144,8 @@ export default function Index({ services }: { services: any }) {
                     </Sheet>
                 </div>
 
-                {/* Customers table */}
                 <div className="w-full">
-                    {services && services.data && services.data.length > 0 ? (
+                    {customers?.data?.length > 0 ? (
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -122,32 +153,24 @@ export default function Index({ services }: { services: any }) {
                                     <TableHead>Customer Name</TableHead>
                                     <TableHead>Email</TableHead>
                                     <TableHead>Phone</TableHead>
+                                    <TableHead>Address</TableHead>
                                     <TableHead className="text-right" />
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {services.data.map((service: any) => (
-                                    <TableRow key={service.id}>
-                                        <TableCell>{services.data.indexOf(service) + 1}</TableCell>
+                                {customers.data.map((customer, index) => (
+                                    <TableRow key={customer.id}>
                                         <TableCell>
-                                            {service.service_name}
+                                            {(customers.from ?? 1) + index}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge
-                                                variant="secondary"
-                                                className="uppercase"
-                                            >
-                                                {service.unit}
-                                            </Badge>
+                                            {customer.user?.name ?? '-'}
                                         </TableCell>
                                         <TableCell>
-                                            Rp {''}
-                                            {new Intl.NumberFormat(undefined, {
-                                                style: 'decimal',
-                                                minimumFractionDigits: 0,
-                                                maximumFractionDigits: 2,
-                                            }).format(service.price)}
+                                            {customer.user?.email ?? '-'}
                                         </TableCell>
+                                        <TableCell>{customer.phone}</TableCell>
+                                        <TableCell>{customer.address}</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -161,7 +184,7 @@ export default function Index({ services }: { services: any }) {
                                                 <DropdownMenuContent align="end">
                                                     <DropdownMenuItem
                                                         onClick={() =>
-                                                            openEdit(service)
+                                                            openEdit(customer)
                                                         }
                                                     >
                                                         <PenSquare className="h-4 w-4" />
@@ -170,15 +193,13 @@ export default function Index({ services }: { services: any }) {
                                                     <DropdownMenuItem
                                                         variant="destructive"
                                                         onClick={() => {
-                                                            setPendingService(
-                                                                service,
+                                                            setPendingCustomer(
+                                                                customer,
                                                             );
                                                             setConfirmAction(
                                                                 'delete',
                                                             );
-                                                            setConfirmOpen(
-                                                                true,
-                                                            );
+                                                            setConfirmOpen(true);
                                                         }}
                                                     >
                                                         <Trash2 className="h-4 w-4" />
@@ -208,63 +229,59 @@ export default function Index({ services }: { services: any }) {
                 </div>
 
                 <Sheet open={editOpen} onOpenChange={setEditOpen}>
-                    <ServiceSheet
+                    <CustomerSheet
                         form={editForm}
                         onSubmit={handleEditSubmit}
-                        title="Edit Service"
+                        title="Edit Customer"
                         submitLabel="Save"
                         idPrefix="edit"
+                        isEdit
                     />
                 </Sheet>
-                {/* Confirmation dialog for edit/delete */}
+
                 <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
                     <AlertDialogContent>
                         <AlertDialogHeader>
                             <AlertDialogTitle>
                                 {confirmAction === 'delete'
-                                    ? 'Delete service'
+                                    ? 'Delete customer'
                                     : 'Confirm changes'}
                             </AlertDialogTitle>
                             <AlertDialogDescription>
                                 {confirmAction === 'delete'
-                                    ? 'Are you sure you want to delete this service? This action cannot be undone.'
-                                    : 'Are you sure you want to save changes to this service?'}
+                                    ? 'Are you sure you want to delete this customer account? This action cannot be undone.'
+                                    : 'Are you sure you want to save changes to this customer?'}
                             </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={() => {
-                                    // perform action
                                     if (
                                         confirmAction === 'delete' &&
-                                        pendingService
+                                        pendingCustomer
                                     ) {
                                         router.delete(
-                                            `/services/${pendingService.id}`,
+                                            destroy.url(pendingCustomer.id),
                                             {
                                                 onSuccess: () => {
                                                     setConfirmOpen(false);
-                                                    setPendingService(null);
+                                                    setPendingCustomer(null);
                                                 },
                                             },
                                         );
                                     }
-                                    if (
-                                        confirmAction === 'edit' &&
-                                        pendingService
-                                    ) {
-                                        editForm.put(
-                                            `/services/${pendingService.id}`,
-                                            {
-                                                onSuccess: () => {
-                                                    setConfirmOpen(false);
-                                                    setPendingService(null);
-                                                    setEditOpen(false);
-                                                    setEditingService(null);
-                                                },
+
+                                    if (confirmAction === 'edit' && pendingCustomer) {
+                                        editForm.put(update.url(pendingCustomer.id), {
+                                            onSuccess: () => {
+                                                setConfirmOpen(false);
+                                                setPendingCustomer(null);
+                                                setEditOpen(false);
+                                                setEditingCustomer(null);
+                                                editForm.reset('password', 'password_confirmation');
                                             },
-                                        );
+                                        });
                                     }
                                 }}
                             >
