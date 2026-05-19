@@ -13,11 +13,16 @@ class TransactionController extends Controller
 {
     public function index()
     {
-        $transactions = Transactions::with(['customer', 'service', 'admin'])
+        $transactions = Transactions::with(['customer.user', 'service', 'admin'])
+            ->latest('id')
             ->paginate(10);
+        $customers = Customer::select('id', 'user_id')->with('user')->get();
+        $services = Service::select('id', 'service_name', 'price', 'unit')->get();
 
         return Inertia::render('Admin/Transactions/Index', [
             'transactions' => $transactions,
+            'customers' => $customers,
+            'services' => $services,
         ]);
     }
 
@@ -39,6 +44,7 @@ class TransactionController extends Controller
             'service_id' => ['required', 'exists:services,id'],
             'quantity' => ['required', 'integer', 'min:1'],
             'payment_method' => ['nullable', 'in:cash,transfer'],
+            'payment_status' => ['required', 'in:pending,paid'],
         ]);
 
         // Get service price and calculate total
@@ -54,7 +60,7 @@ class TransactionController extends Controller
             'total_price' => $totalPrice,
             'status' => 'antrian',
             'payment_method' => $validated['payment_method'],
-            'payment_status' => 'pending',
+            'payment_status' => $validated['payment_status'],
         ]);
 
         return redirect()->route('transactions.index')
@@ -63,7 +69,7 @@ class TransactionController extends Controller
 
     public function edit(Transactions $transaction)
     {
-        $transaction->load(['customer', 'service', 'admin']);
+        $transaction->load(['customer.user', 'service', 'admin']);
         $customers = Customer::select('id', 'user_id')->with('user')->get();
         $services = Service::select('id', 'service_name', 'price', 'unit')->get();
 

@@ -212,7 +212,6 @@ export default function Index({
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
                                                         variant="ghost"
-                                                        className="p-0"
                                                     >
                                                         <Ellipsis className="h-4 w-4" />
                                                     </Button>

@@ -11,7 +11,7 @@ beforeEach(function () {
     $this->seed(RoleSeeder::class);
 });
 
-function adminUser(): User
+function customerTestAdminUser(): User
 {
     $admin = User::factory()->create();
     $admin->assignRole('admin');
@@ -20,7 +20,7 @@ function adminUser(): User
 }
 
 test('admin can create a customer account with customer role', function () {
-    $response = $this->actingAs(adminUser())->post(route('customers.store'), [
+    $response = $this->actingAs(customerTestAdminUser())->post(route('customers.store'), [
         'name' => 'Customer User',
         'email' => 'customer@example.com',
         'password' => 'password',
@@ -58,7 +58,7 @@ test('admin can update the linked customer user and profile data', function () {
         'address' => 'Old Address',
     ]);
 
-    $response = $this->actingAs(adminUser())->put(route('customers.update', $customer), [
+    $response = $this->actingAs(customerTestAdminUser())->put(route('customers.update', $customer), [
         'name' => 'Updated Name',
         'email' => 'updated@example.com',
         'password' => '',
@@ -90,7 +90,7 @@ test('admin can delete a customer account and its profile', function () {
         'address' => 'Delete Me Street',
     ]);
 
-    $response = $this->actingAs(adminUser())->delete(route('customers.destroy', $customer));
+    $response = $this->actingAs(customerTestAdminUser())->delete(route('customers.destroy', $customer));
 
     $response
         ->assertSessionHasNoErrors()

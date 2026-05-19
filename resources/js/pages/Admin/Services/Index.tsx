@@ -192,7 +192,6 @@ export default function Index({ services }: { services: any }) {
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
                                                         variant="ghost"
-                                                        className="p-0"
                                                     >
                                                         <Ellipsis className="h-4 w-4" />
                                                     </Button>
