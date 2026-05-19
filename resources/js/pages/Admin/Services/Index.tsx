@@ -119,6 +119,7 @@ export default function Index({ services }: { services: any }) {
                         <Table>
                             <TableHeader>
                                 <TableRow>
+                                    <TableHead>No.</TableHead>
                                     <TableHead>Service Name</TableHead>
                                     <TableHead>Unit</TableHead>
                                     <TableHead>Price</TableHead>
@@ -128,6 +129,7 @@ export default function Index({ services }: { services: any }) {
                             <TableBody>
                                 {services.data.map((service: any) => (
                                     <TableRow key={service.id}>
+                                        <TableCell>{services.data.indexOf(service) + 1}</TableCell>
                                         <TableCell>
                                             {service.service_name}
                                         </TableCell>
