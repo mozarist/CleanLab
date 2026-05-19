@@ -13,10 +13,10 @@ import {
     SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { dashboard } from '@/routes';
-import type { NavItem } from '@/types';
 import * as customers from '@/routes/customers';
 import * as services from '@/routes/services';
 import * as transactions from '@/routes/transactions';
+import type { NavItem } from '@/types';
 
 const mainNavItems: NavItem[] = [
     {
@@ -47,9 +47,13 @@ export function AppSidebar() {
             <SidebarHeader>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                        <SidebarMenuButton size="lg" asChild>
+                        <SidebarMenuButton
+                            size="lg"
+                            asChild
+                            className="group-data-[collapsible=icon]:justify-center"
+                        >
                             <Link href={dashboard()} prefetch>
-                                <AppLogo />
+                                <AppLogo className="group-data-[collapsible=icon]:w-full group-data-[collapsible=icon]:justify-center" />
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
