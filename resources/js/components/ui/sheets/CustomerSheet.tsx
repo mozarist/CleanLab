@@ -2,7 +2,8 @@ import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Textarea } from '../textarea';
 
 interface CustomerFormData {
     name: string;
@@ -14,15 +15,11 @@ interface CustomerFormData {
 }
 
 interface CustomerSheetProps {
-    form: {
-        data: CustomerFormData;
-        setData: (key: keyof CustomerFormData, value: string) => void;
-        processing: boolean;
-        errors: Partial<Record<keyof CustomerFormData, string>>;
-    };
+    form: any;
     onSubmit: (e: React.FormEvent) => void;
     title?: string;
     submitLabel?: string;
+    cancelLabel?: string;
     idPrefix?: string;
     isEdit?: boolean;
 }
@@ -32,6 +29,7 @@ export function CustomerSheet({
     onSubmit,
     title = 'Customer',
     submitLabel = 'Save',
+    cancelLabel = 'Cancel',
     idPrefix = '',
     isEdit = false,
 }: CustomerSheetProps) {
@@ -45,16 +43,18 @@ export function CustomerSheet({
 
             <form
                 onSubmit={onSubmit}
-                className="flex h-full w-full flex-col justify-between gap-6 p-6"
+                className="flex h-full w-full flex-col overflow-hidden"
             >
-                <div className="space-y-4">
+                <div className="flex-1 overflow-y-auto space-y-4 px-6 scrollbar-none">
                     <div className="space-y-2">
                         <Label htmlFor={`${prefix}name`}>Full Name</Label>
                         <Input
                             id={`${prefix}name`}
+                            placeholder='Customer name'
                             value={form.data.name}
                             onChange={(e) => form.setData('name', e.target.value)}
                             disabled={form.processing}
+                            aria-invalid={!!form.errors.name}
                         />
                         {form.errors.name && (
                             <p className="mt-1 text-sm text-red-600">
@@ -68,9 +68,11 @@ export function CustomerSheet({
                         <Input
                             id={`${prefix}email`}
                             type="email"
+                            placeholder='Customer email'
                             value={form.data.email}
                             onChange={(e) => form.setData('email', e.target.value)}
                             disabled={form.processing}
+                            aria-invalid={!!form.errors.email}
                         />
                         {form.errors.email && (
                             <p className="mt-1 text-sm text-red-600">
@@ -79,7 +81,6 @@ export function CustomerSheet({
                         )}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-2">
                             <Label htmlFor={`${prefix}password`}>
                                 {isEdit ? 'New Password' : 'Password'}
@@ -93,8 +94,9 @@ export function CustomerSheet({
                                 }
                                 disabled={form.processing}
                                 placeholder={
-                                    isEdit ? 'Leave blank to keep current' : ''
+                                    isEdit ? 'Leave blank to keep the current password' : '••••••••'
                                 }
+                                aria-invalid={!!form.errors.password}
                             />
                             {form.errors.password && (
                                 <p className="mt-1 text-sm text-red-600">
@@ -110,6 +112,7 @@ export function CustomerSheet({
                             <Input
                                 id={`${prefix}password_confirmation`}
                                 type="password"
+                                placeholder='••••••••'
                                 value={form.data.password_confirmation}
                                 onChange={(e) =>
                                     form.setData(
@@ -118,6 +121,7 @@ export function CustomerSheet({
                                     )
                                 }
                                 disabled={form.processing}
+                                aria-invalid={!!form.errors.password_confirmation}
                             />
                             {form.errors.password_confirmation && (
                                 <p className="mt-1 text-sm text-red-600">
@@ -125,15 +129,16 @@ export function CustomerSheet({
                                 </p>
                             )}
                         </div>
-                    </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor={`${prefix}phone`}>Phone</Label>
+                        <Label htmlFor={`${prefix}phone`}>Phone Number  </Label>
                         <Input
                             id={`${prefix}phone`}
+                            placeholder='+62 8XX XXXX XXXX'
                             value={form.data.phone}
                             onChange={(e) => form.setData('phone', e.target.value)}
                             disabled={form.processing}
+                            aria-invalid={!!form.errors.phone}
                         />
                         {form.errors.phone && (
                             <p className="mt-1 text-sm text-red-600">
@@ -144,11 +149,13 @@ export function CustomerSheet({
 
                     <div className="space-y-2">
                         <Label htmlFor={`${prefix}address`}>Address</Label>
-                        <Input
+                        <Textarea
                             id={`${prefix}address`}
+                            placeholder='Type customer address here..'
                             value={form.data.address}
                             onChange={(e) => form.setData('address', e.target.value)}
                             disabled={form.processing}
+                            aria-invalid={!!form.errors.address}
                         />
                         {form.errors.address && (
                             <p className="mt-1 text-sm text-red-600">
@@ -158,9 +165,23 @@ export function CustomerSheet({
                     </div>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={form.processing}>
-                    {form.processing ? `${submitLabel}...` : submitLabel}
-                </Button>
+                <SheetFooter>
+                    <Button type="submit" className="w-full" disabled={form.processing}>
+                        {form.processing ? `${submitLabel}...` : submitLabel}
+                    </Button>
+
+                    <SheetClose asChild>
+                        <Button
+                            type="button"
+                            variant="outline"
+                            className="w-full"
+                            onClick={() => form.reset()}
+                            disabled={form.processing}
+                        >
+                            {form.processing ? `${cancelLabel}...` : cancelLabel}
+                        </Button>
+                    </SheetClose>
+                </SheetFooter>
             </form>
         </SheetContent>
     );
