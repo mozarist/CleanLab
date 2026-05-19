@@ -140,7 +140,7 @@
 
 @layer base {
     * {
-        @apply border-border outline-ring/50 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent;
+        @apply border-border outline-ring/50 scrollbar-thin scrollbar-thumb-muted scrollbar-track-transparent selection:bg-primary-foreground selection:text-primary;
     }
 
     body {
