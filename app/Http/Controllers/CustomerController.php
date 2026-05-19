@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Customer;
+use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class CustomerController extends Controller
@@ -25,12 +28,28 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => ['required', 'exists:users,id', 'unique:customers,user_id'],
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email'],
+            'password' => ['required', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'max:20'],
             'address' => ['required', 'string', 'max:500'],
         ]);
 
-        Customer::create($validated);
+        DB::transaction(function () use ($validated): void {
+            $user = User::create([
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+                'password' => $validated['password'],
+            ]);
+
+            $user->assignRole('customer');
+
+            Customer::create([
+                'user_id' => $user->id,
+                'phone' => $validated['phone'],
+                'address' => $validated['address'],
+            ]);
+        });
 
         return redirect()->route('customers.index')
             ->with('success', 'Customer created successfully!');
@@ -48,11 +67,34 @@ class CustomerController extends Controller
     public function update(Request $request, Customer $customer)
     {
         $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'string', 'email', 'max:255', Rule::unique('users', 'email')->ignore($customer->user_id)],
+            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
             'phone' => ['required', 'string', 'max:20'],
             'address' => ['required', 'string', 'max:500'],
         ]);
 
-        $customer->update($validated);
+        DB::transaction(function () use ($customer, $validated): void {
+            $userData = [
+                'name' => $validated['name'],
+                'email' => $validated['email'],
+            ];
+
+            if (! empty($validated['password'])) {
+                $userData['password'] = $validated['password'];
+            }
+
+            if ($customer->user->email !== $validated['email']) {
+                $userData['email_verified_at'] = null;
+            }
+
+            $customer->user->update($userData);
+
+            $customer->update([
+                'phone' => $validated['phone'],
+                'address' => $validated['address'],
+            ]);
+        });
 
         return redirect()->route('customers.index')
             ->with('success', 'Customer updated successfully!');
@@ -60,7 +102,9 @@ class CustomerController extends Controller
 
     public function destroy(Customer $customer)
     {
-        $customer->delete();
+        DB::transaction(function () use ($customer): void {
+            $customer->user()->delete();
+        });
 
         return redirect()->route('customers.index')
             ->with('success', 'Customer deleted successfully!');
