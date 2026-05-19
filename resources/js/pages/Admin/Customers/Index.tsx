@@ -1,6 +1,7 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import { UserRoundPlus, PenSquare, Trash2, Ellipsis } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -87,8 +88,12 @@ export default function Index({
 
         createForm.post(store.url(), {
             onSuccess: () => {
+                toast.success('Customer successfully created.');
                 createForm.reset();
                 setOpen(false);
+            },
+            onError: () => {
+                toast.error('Failed to create customer. Please check the form and try again.');
             },
         });
     }
@@ -114,6 +119,37 @@ export default function Index({
         setPendingCustomer(editingCustomer);
         setConfirmAction('edit');
         setConfirmOpen(true);
+    }
+
+    function handleDeleteCustomer(customer: Customer) {
+        router.delete(destroy.url(customer.id), {
+            onSuccess: () => {
+                toast.success('Customer successfully deleted.');
+                setConfirmOpen(false);
+                setPendingCustomer(null);
+                setConfirmAction(null);
+            },
+            onError: () => {
+                toast.error('Failed to delete customer. Please try again.');
+            },
+        });
+    }
+
+    function handleUpdateCustomer(customer: Customer) {
+        editForm.put(update.url(customer.id), {
+            onSuccess: () => {
+                toast.success('Customer successfully edited.');
+                setConfirmOpen(false);
+                setPendingCustomer(null);
+                setEditOpen(false);
+                setEditingCustomer(null);
+                setConfirmAction(null);
+                editForm.reset('password', 'password_confirmation');
+            },
+            onError: () => {
+                toast.error('Failed to edit customer. Please review the form and try again.');
+            },
+        });
     }
 
     return (
@@ -261,27 +297,11 @@ export default function Index({
                                         confirmAction === 'delete' &&
                                         pendingCustomer
                                     ) {
-                                        router.delete(
-                                            destroy.url(pendingCustomer.id),
-                                            {
-                                                onSuccess: () => {
-                                                    setConfirmOpen(false);
-                                                    setPendingCustomer(null);
-                                                },
-                                            },
-                                        );
+                                        handleDeleteCustomer(pendingCustomer);
                                     }
 
                                     if (confirmAction === 'edit' && pendingCustomer) {
-                                        editForm.put(update.url(pendingCustomer.id), {
-                                            onSuccess: () => {
-                                                setConfirmOpen(false);
-                                                setPendingCustomer(null);
-                                                setEditOpen(false);
-                                                setEditingCustomer(null);
-                                                editForm.reset('password', 'password_confirmation');
-                                            },
-                                        });
+                                        handleUpdateCustomer(pendingCustomer);
                                     }
                                 }}
                             >

@@ -1,28 +1,13 @@
-import { Head, useForm } from '@inertiajs/react';
-import { index } from '@/routes/customers';
-import { Button } from '@/components/ui/button';
-import {
-    Table,
-    TableHeader,
-    TableBody,
-    TableRow,
-    TableCell,
-    TableHead,
-} from '@/components/ui/table';
-import {
-    DropdownMenu,
-    DropdownMenuTrigger,
-    DropdownMenuContent,
-    DropdownMenuItem,
-} from '@/components/ui/dropdown-menu';
+import { Head, router, useForm } from '@inertiajs/react';
 import {
     CirclePlus,
-    PenSquare,
-    Trash2,
     Ellipsis,
+    PenSquare,
     PlusCircle,
+    Trash2,
 } from 'lucide-react';
-import ServiceSheet from '@/components/ui/sheets/ServiceSheet';
+import { useState } from 'react';
+import { toast } from 'sonner';
 import {
     AlertDialog,
     AlertDialogContent,
@@ -33,11 +18,26 @@ import {
     AlertDialogCancel,
     AlertDialogAction,
 } from '@/components/ui/alert-dialog';
-import { router } from '@inertiajs/react';
-import { useState } from 'react';
-import { Sheet, SheetTrigger } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import {
+    DropdownMenu,
+    DropdownMenuTrigger,
+    DropdownMenuContent,
+    DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
+import { Sheet, SheetTrigger } from '@/components/ui/sheet';
+import ServiceSheet from '@/components/ui/sheets/ServiceSheet';
+import {
+    Table,
+    TableHeader,
+    TableBody,
+    TableRow,
+    TableCell,
+    TableHead,
+} from '@/components/ui/table';
+import { index } from '@/routes/services';
 
 export default function Index({ services }: { services: any }) {
     const [open, setOpen] = useState(false);
@@ -66,8 +66,12 @@ export default function Index({ services }: { services: any }) {
         e.preventDefault();
         createForm.post('/services', {
             onSuccess: () => {
+                toast.success('Service successfully created.');
                 createForm.reset();
                 setOpen(false);
+            },
+            onError: () => {
+                toast.error('Failed to create service. Please check the form and try again.');
             },
         });
     }
@@ -82,10 +86,44 @@ export default function Index({ services }: { services: any }) {
 
     function handleEditSubmit(e: React.FormEvent) {
         e.preventDefault();
-        if (!editingService) return;
+
+        if (!editingService) {
+            return;
+        }
+
         setPendingService(editingService);
         setConfirmAction('edit');
         setConfirmOpen(true);
+    }
+
+    function handleDeleteService(service: any) {
+        router.delete(`/services/${service.id}`, {
+            onSuccess: () => {
+                toast.success('Service successfully deleted.');
+                setConfirmOpen(false);
+                setPendingService(null);
+                setConfirmAction(null);
+            },
+            onError: () => {
+                toast.error('Failed to delete service. Please try again.');
+            },
+        });
+    }
+
+    function handleUpdateService(service: any) {
+        editForm.put(`/services/${service.id}`, {
+            onSuccess: () => {
+                toast.success('Service successfully edited.');
+                setConfirmOpen(false);
+                setPendingService(null);
+                setEditOpen(false);
+                setEditingService(null);
+                setConfirmAction(null);
+            },
+            onError: () => {
+                toast.error('Failed to edit service. Please review the form and try again.');
+            },
+        });
     }
 
     return (
@@ -236,36 +274,18 @@ export default function Index({ services }: { services: any }) {
                             <AlertDialogCancel>Cancel</AlertDialogCancel>
                             <AlertDialogAction
                                 onClick={() => {
-                                    // perform action
                                     if (
                                         confirmAction === 'delete' &&
                                         pendingService
                                     ) {
-                                        router.delete(
-                                            `/services/${pendingService.id}`,
-                                            {
-                                                onSuccess: () => {
-                                                    setConfirmOpen(false);
-                                                    setPendingService(null);
-                                                },
-                                            },
-                                        );
+                                        handleDeleteService(pendingService);
                                     }
+
                                     if (
                                         confirmAction === 'edit' &&
                                         pendingService
                                     ) {
-                                        editForm.put(
-                                            `/services/${pendingService.id}`,
-                                            {
-                                                onSuccess: () => {
-                                                    setConfirmOpen(false);
-                                                    setPendingService(null);
-                                                    setEditOpen(false);
-                                                    setEditingService(null);
-                                                },
-                                            },
-                                        );
+                                        handleUpdateService(pendingService);
                                     }
                                 }}
                             >
