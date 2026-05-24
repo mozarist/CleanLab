@@ -1,9 +1,8 @@
 import { Head, router, useForm } from '@inertiajs/react';
 import {
-    CirclePlus,
     Ellipsis,
     PenSquare,
-    PlusCircle,
+    PackagePlus,
     Trash2,
 } from 'lucide-react';
 import { useState } from 'react';
@@ -136,7 +135,7 @@ export default function Index({ services }: { services: any }) {
                     <Sheet open={open} onOpenChange={setOpen}>
                         <SheetTrigger asChild>
                             <Button>
-                                <CirclePlus className="h-4 w-4" />
+                                <PackagePlus className="h-4 w-4" />
                                 Add New Service
                             </Button>
                         </SheetTrigger>
@@ -231,7 +230,7 @@ export default function Index({ services }: { services: any }) {
                         </Table>
                     ) : (
                         <Card className="items-center justify-center gap-2 bg-muted/40 py-12">
-                            <PlusCircle className="h-12 w-12 text-muted-foreground/75" />
+                            <PackagePlus className="h-12 w-12 text-muted-foreground/75" />
                             <div>
                                 <p className="text-center text-lg font-medium">
                                     There are no services yet.

@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CustomerController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\TransactionController;
 use Illuminate\Support\Facades\Route;
@@ -11,7 +12,8 @@ Route::inertia('/', 'welcome', [
 ])->name('home');
 
 Route::middleware(['auth', 'verified', 'role:admin'])->group(function () {
-    Route::inertia('dashboard', 'dashboard')->name('dashboard');
+    // Dashboard
+    Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Customers
     Route::resource('customers', CustomerController::class)->only(['index', 'store', 'update', 'destroy']);

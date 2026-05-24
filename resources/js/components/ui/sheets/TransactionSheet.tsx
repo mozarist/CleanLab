@@ -111,7 +111,7 @@ export function TransactionSheet({
 						</div>
 					</div>
 
-					<div className='space-y-2'>
+					<div className='space-y-2 pt-4 border-t'>
 						<Label htmlFor={`${prefix}payment_method`}>Payment Method</Label>
 						<Select value={form.data.payment_method || ''} onValueChange={(val) => form.setData('payment_method', val)} disabled={form.processing}>
 							<SelectTrigger id={`${prefix}payment_method`} className="w-full">
