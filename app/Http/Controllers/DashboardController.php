@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\Transactions;
+use Carbon\CarbonImmutable;
+use Carbon\CarbonPeriod;
 use Illuminate\Support\Collection;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -11,18 +14,15 @@ class DashboardController extends Controller
 {
     public function index(): Response
     {
+        $paidTransactions = Transactions::query()
+            ->with(['service'])
+            ->where('payment_status', 'paid')
+            ->orderBy('paid_at')
+            ->get(['id', 'service_id', 'total_price', 'paid_at', 'created_at']);
+
         $recentTransactions = $this->mapTransactions(
             Transactions::query()
                 ->with(['customer.user', 'service'])
-                ->latest()
-                ->take(5)
-                ->get(),
-        );
-
-        $readyToSendLaundryTransactions = $this->mapTransactions(
-            Transactions::query()
-                ->with(['customer.user', 'service'])
-                ->where('status', 'siap_diambil')
                 ->latest()
                 ->take(5)
                 ->get(),
@@ -33,10 +33,10 @@ class DashboardController extends Controller
                 'totalTransactions' => Transactions::count(),
                 'totalRevenue' => (float) Transactions::where('payment_status', 'paid')->sum('total_price'),
                 'pendingPayments' => Transactions::where('payment_status', 'pending')->count(),
-                'readyToSendLaundry' => Transactions::where('status', 'siap_diambil')->count(),
+                'activeCustomers' => Customer::count(),
             ],
             'recentTransactions' => $recentTransactions,
-            'readyToSendLaundryTransactions' => $readyToSendLaundryTransactions,
+            'revenueChart' => $this->buildRevenueChart($paidTransactions),
         ]);
     }
 
@@ -70,5 +70,84 @@ class DashboardController extends Controller
                 ],
             ];
         })->all();
+    }
+
+    /**
+     * @param  Collection<int, Transactions>  $transactions
+     * @return array{
+     *     categories: array<int, array{key: string, label: string}>,
+     *     data: array<int, array<string, float|int|string>>
+     * }
+     */
+    private function buildRevenueChart(Collection $transactions): array
+    {
+        if ($transactions->isEmpty()) {
+            return [
+                'categories' => [],
+                'data' => [],
+            ];
+        }
+
+        $categories = $transactions
+            ->map(function (Transactions $transaction): ?array {
+                $service = $transaction->service;
+
+                if (! $service?->id) {
+                    return null;
+                }
+
+                return [
+                    'key' => $this->revenueCategoryKey($transaction),
+                    'label' => $service->service_name ?? 'Unknown Service',
+                ];
+            })
+            ->filter()
+            ->unique('key')
+            ->sortBy('label')
+            ->values()
+            ->all();
+
+        $transactionsByDay = $transactions->groupBy(function (Transactions $transaction): string {
+            return $transaction->paid_at?->toDateString()
+                ?? $transaction->created_at?->toDateString()
+                ?? now()->toDateString();
+        });
+
+        $periodStart = CarbonImmutable::parse($transactionsByDay->keys()->min());
+        $periodEnd = CarbonImmutable::parse($transactionsByDay->keys()->max());
+        $period = CarbonPeriod::create($periodStart, '1 day', $periodEnd);
+
+        $data = [];
+
+        foreach ($period as $date) {
+            $dateKey = $date->toDateString();
+            $row = [
+                'date' => $dateKey,
+            ];
+
+            foreach ($categories as $category) {
+                $row[$category['key']] = 0.0;
+                $row[$category['key'].'Transactions'] = 0;
+            }
+
+            $dayTransactions = $transactionsByDay->get($dateKey, collect());
+
+            foreach ($dayTransactions->groupBy(fn (Transactions $transaction): string => $this->revenueCategoryKey($transaction)) as $categoryKey => $categoryTransactions) {
+                $row[$categoryKey] = (float) $categoryTransactions->sum('total_price');
+                $row[$categoryKey.'Transactions'] = $categoryTransactions->count();
+            }
+
+            $data[] = $row;
+        }
+
+        return [
+            'categories' => $categories,
+            'data' => $data,
+        ];
+    }
+
+    private function revenueCategoryKey(Transactions $transaction): string
+    {
+        return 'service-'.$transaction->service_id;
     }
 }

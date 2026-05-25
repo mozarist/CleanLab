@@ -24,29 +24,105 @@ test('admins can visit the dashboard', function () {
     $user->assignRole('admin');
     $this->actingAs($user);
 
+    $customers = Customer::factory()->count(3)->create();
+
+    $dryCleaning = Service::factory()->create([
+        'service_name' => 'Dry Cleaning',
+        'price' => 50000,
+        'unit' => 'pcs',
+    ]);
+
+    $washAndFold = Service::factory()->create([
+        'service_name' => 'Wash and Fold',
+        'price' => 25000,
+        'unit' => 'kg',
+    ]);
+
+    $today = now()->startOfDay();
+    $yesterday = now()->subDay()->startOfDay();
+
     $transactions = [
-        ['invoice_code' => 'INV-001', 'status' => 'antrian', 'payment_status' => 'paid', 'total_price' => 150000, 'created_at' => now()->subMinutes(6)],
-        ['invoice_code' => 'INV-002', 'status' => 'siap_diambil', 'payment_status' => 'pending', 'total_price' => 175000, 'created_at' => now()->subMinutes(5)],
-        ['invoice_code' => 'INV-003', 'status' => 'dicuci', 'payment_status' => 'paid', 'total_price' => 200000, 'created_at' => now()->subMinutes(4)],
-        ['invoice_code' => 'INV-004', 'status' => 'siap_diambil', 'payment_status' => 'paid', 'total_price' => 250000, 'created_at' => now()->subMinutes(3)],
-        ['invoice_code' => 'INV-005', 'status' => 'disetrika', 'payment_status' => 'pending', 'total_price' => 125000, 'created_at' => now()->subMinutes(2)],
-        ['invoice_code' => 'INV-006', 'status' => 'diambil', 'payment_status' => 'paid', 'total_price' => 300000, 'created_at' => now()->subMinutes(1)],
+        [
+            'invoice_code' => 'INV-001',
+            'customer' => $customers[0],
+            'service' => $washAndFold,
+            'status' => 'antrian',
+            'payment_status' => 'pending',
+            'quantity' => 2,
+            'total_price' => 50000,
+            'created_at' => $today->copy()->subDays(3),
+            'paid_at' => null,
+        ],
+        [
+            'invoice_code' => 'INV-002',
+            'customer' => $customers[1],
+            'service' => $dryCleaning,
+            'status' => 'dicuci',
+            'payment_status' => 'paid',
+            'quantity' => 3,
+            'total_price' => 100000,
+            'created_at' => $today->copy()->subDays(2),
+            'paid_at' => $today->copy()->subDays(2),
+        ],
+        [
+            'invoice_code' => 'INV-003',
+            'customer' => $customers[2],
+            'service' => $dryCleaning,
+            'status' => 'siap_diambil',
+            'payment_status' => 'paid',
+            'quantity' => 2,
+            'total_price' => 50000,
+            'created_at' => $yesterday,
+            'paid_at' => $yesterday,
+        ],
+        [
+            'invoice_code' => 'INV-004',
+            'customer' => $customers[0],
+            'service' => $washAndFold,
+            'status' => 'siap_diambil',
+            'payment_status' => 'paid',
+            'quantity' => 3,
+            'total_price' => 75000,
+            'created_at' => $yesterday,
+            'paid_at' => $yesterday,
+        ],
+        [
+            'invoice_code' => 'INV-005',
+            'customer' => $customers[1],
+            'service' => $dryCleaning,
+            'status' => 'disetrika',
+            'payment_status' => 'pending',
+            'quantity' => 1,
+            'total_price' => 125000,
+            'created_at' => $today->copy()->subDay(),
+            'paid_at' => null,
+        ],
+        [
+            'invoice_code' => 'INV-006',
+            'customer' => $customers[2],
+            'service' => $washAndFold,
+            'status' => 'diambil',
+            'payment_status' => 'pending',
+            'quantity' => 1,
+            'total_price' => 90000,
+            'created_at' => $today,
+            'paid_at' => null,
+        ],
     ];
 
     foreach ($transactions as $transactionData) {
-        $customer = Customer::factory()->create();
-        $service = Service::factory()->create();
-
-        Transactions::factory()->create([
+        Transactions::query()->insert([
             'admin_id' => $user->id,
-            'customer_id' => $customer->id,
-            'service_id' => $service->id,
+            'customer_id' => $transactionData['customer']->id,
+            'service_id' => $transactionData['service']->id,
             'invoice_code' => $transactionData['invoice_code'],
             'status' => $transactionData['status'],
             'payment_status' => $transactionData['payment_status'],
+            'quantity' => $transactionData['quantity'],
             'total_price' => $transactionData['total_price'],
-            'created_at' => $transactionData['created_at'],
-            'updated_at' => $transactionData['created_at'],
+            'created_at' => $transactionData['created_at']->toDateTimeString(),
+            'updated_at' => $transactionData['created_at']->toDateTimeString(),
+            'paid_at' => $transactionData['paid_at']?->toDateTimeString(),
         ]);
     }
 
@@ -56,14 +132,26 @@ test('admins can visit the dashboard', function () {
         ->assertInertia(fn (Assert $page) => $page
             ->component('dashboard')
             ->where('summary.totalTransactions', 6)
-            ->where('summary.totalRevenue', 900000)
-            ->where('summary.pendingPayments', 2)
-            ->where('summary.readyToSendLaundry', 2)
+            ->where('summary.totalRevenue', 225000)
+            ->where('summary.pendingPayments', 3)
+            ->where('summary.activeCustomers', 3)
             ->has('recentTransactions', 5)
-            ->has('readyToSendLaundryTransactions', 2)
             ->where('recentTransactions.0.invoice_code', 'INV-006')
             ->where('recentTransactions.4.invoice_code', 'INV-002')
-            ->where('readyToSendLaundryTransactions.0.invoice_code', 'INV-004')
+            ->has('revenueChart.categories', 2)
+            ->has('revenueChart.data', 2)
+            ->where('revenueChart.categories.0.label', 'Dry Cleaning')
+            ->where('revenueChart.categories.1.label', 'Wash and Fold')
+            ->where('revenueChart.data.0.date', $today->copy()->subDays(2)->toDateString())
+            ->where('revenueChart.data.0.service-'.$dryCleaning->id, 100000)
+            ->where('revenueChart.data.0.service-'.$dryCleaning->id.'Transactions', 1)
+            ->where('revenueChart.data.0.service-'.$washAndFold->id, 0)
+            ->where('revenueChart.data.0.service-'.$washAndFold->id.'Transactions', 0)
+            ->where('revenueChart.data.1.date', $yesterday->toDateString())
+            ->where('revenueChart.data.1.service-'.$dryCleaning->id, 50000)
+            ->where('revenueChart.data.1.service-'.$dryCleaning->id.'Transactions', 1)
+            ->where('revenueChart.data.1.service-'.$washAndFold->id, 75000)
+            ->where('revenueChart.data.1.service-'.$washAndFold->id.'Transactions', 1)
         );
 });
 
