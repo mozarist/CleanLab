@@ -13,7 +13,11 @@ class CustomerController extends Controller
 {
     public function index()
     {
-        $customers = Customer::with('user')->paginate(10);
+        $customers = Customer::query()
+            ->with('user')
+            ->withCount(['transactions as total_transactions'])
+            ->latest('id')
+            ->paginate(10);
 
         return Inertia::render('Admin/Customers/Index', [
             'customers' => $customers,

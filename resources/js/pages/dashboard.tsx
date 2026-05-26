@@ -140,7 +140,9 @@ function formatStatus(value: string | null): string {
         return '-';
     }
 
-    return value.replace(/_/g, ' ').replace(/\b\w/g, (character) => character.toUpperCase());
+    return value
+        .replace(/_/g, ' ')
+        .replace(/\b\w/g, (character) => character.toUpperCase());
 }
 
 function formatDateKey(value: Date): string {
@@ -227,7 +229,10 @@ function createRevenueChartConfig(categories: RevenueCategory[]): ChartConfig {
     }, {});
 }
 
-function getVisibleRevenueData(data: RevenueChartPoint[], range: RevenueRange): RevenueChartPoint[] {
+function getVisibleRevenueData(
+    data: RevenueChartPoint[],
+    range: RevenueRange,
+): RevenueChartPoint[] {
     const startDateKey = getRangeStart(range);
 
     if (!startDateKey) {
@@ -277,7 +282,7 @@ function TransactionTable({
     transactions: Transaction[];
 }) {
     return (
-        <Card className="overflow-hidden pb-0 h-fit">
+        <Card className="h-fit overflow-hidden pb-0">
             <CardHeader className="gap-0">
                 <CardTitle>{title}</CardTitle>
                 <CardDescription>{description}</CardDescription>
@@ -303,32 +308,52 @@ function TransactionTable({
                                         {transaction.customer.user.name ?? '-'}
                                     </TableCell>
                                     <TableCell>
-                                        {transaction.service.service_name ?? '-'}
+                                        {transaction.service.service_name ??
+                                            '-'}
                                     </TableCell>
                                     <TableCell>
-                                        {transaction.quantity} {transaction.service.unit ?? ''}
+                                        {transaction.quantity}{' '}
+                                        {transaction.service.unit ?? ''}
                                     </TableCell>
-                                    <TableCell>{formatCurrency(transaction.total_price)}</TableCell>
+                                    <TableCell>
+                                        {formatCurrency(
+                                            transaction.total_price,
+                                        )}
+                                    </TableCell>
                                     <TableCell>
                                         <Badge
                                             variant="secondary"
-                                            className={paymentStatusColors[transaction.payment_status] || ''}
+                                            className={
+                                                paymentStatusColors[
+                                                    transaction.payment_status
+                                                ] || ''
+                                            }
                                         >
-                                            {formatStatus(transaction.payment_status)}
+                                            {formatStatus(
+                                                transaction.payment_status,
+                                            )}
                                         </Badge>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge className={statusColors[transaction.status] || ''}>
+                                        <Badge
+                                            className={
+                                                statusColors[
+                                                    transaction.status
+                                                ] || ''
+                                            }
+                                        >
                                             {formatStatus(transaction.status)}
                                         </Badge>
                                     </TableCell>
-                                    <TableCell>{formatDateTime(transaction.created_at)}</TableCell>
+                                    <TableCell>
+                                        {formatDateTime(transaction.created_at)}
+                                    </TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
                     </Table>
                 ) : (
-                    <div className="w-full h-full flex flex-col items-center justify-center px-6 py-10 text-sm text-muted-foreground">
+                    <div className="flex h-full w-full flex-col items-center justify-center px-6 py-10 text-sm text-muted-foreground">
                         {emptyState}
                     </div>
                 )}
@@ -353,14 +378,17 @@ function RevenueChartCard({ revenueChart }: { revenueChart: RevenueChart }) {
     return (
         <Card className="overflow-hidden">
             <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-                <div className="space-y-1">
+                <div>
                     <CardTitle>Laundry Revenue</CardTitle>
                     <CardDescription>
-                        Paid transactions grouped by service and day.
+                        Track your laundry revenue over time.
                     </CardDescription>
                 </div>
 
-                <Select value={range} onValueChange={(value) => setRange(value as RevenueRange)}>
+                <Select
+                    value={range}
+                    onValueChange={(value) => setRange(value as RevenueRange)}
+                >
                     <SelectTrigger className="w-44" size="sm">
                         <SelectValue placeholder="Filter revenue" />
                     </SelectTrigger>
@@ -376,8 +404,14 @@ function RevenueChartCard({ revenueChart }: { revenueChart: RevenueChart }) {
 
             <CardContent>
                 {visibleData.length > 0 ? (
-                    <ChartContainer config={chartConfig} className="h-90 w-full">
-                        <AreaChart data={visibleData} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+                    <ChartContainer
+                        config={chartConfig}
+                        className="h-90 w-full"
+                    >
+                        <AreaChart
+                            data={visibleData}
+                            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                        >
                             <CartesianGrid vertical={false} />
                             <XAxis
                                 dataKey="date"
@@ -392,7 +426,9 @@ function RevenueChartCard({ revenueChart }: { revenueChart: RevenueChart }) {
                                 axisLine={false}
                                 tickMargin={8}
                                 width={70}
-                                tickFormatter={(value) => formatCompactAmount(Number(value))}
+                                tickFormatter={(value) =>
+                                    formatCompactAmount(Number(value))
+                                }
                             />
                             <ChartTooltip
                                 cursor={false}
@@ -400,11 +436,38 @@ function RevenueChartCard({ revenueChart }: { revenueChart: RevenueChart }) {
                                     <ChartTooltipContent
                                         indicator="dot"
                                         hideIndicator
-                                        labelFormatter={(label) => formatChartDate(String(label))}
+                                        labelFormatter={(label, payload) => {
+                                            const totalRevenue = Number(
+                                                payload?.[0]?.payload
+                                                    ?.totalRevenue ?? 0,
+                                            );
+
+                                            return (
+                                                <div className="grid gap-1.5">
+                                                    <div className="font-medium">
+                                                        {formatChartDate(
+                                                            String(label),
+                                                        )}
+                                                    </div>
+                                                    <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
+                                                        <span>Total revenue</span>
+                                                        <span className="font-mono font-medium text-foreground">
+                                                            {formatCurrency(
+                                                                totalRevenue,
+                                                            )}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        }}
                                         formatter={(value, name, item) => {
-                                            const seriesKey = String(item.dataKey ?? name);
+                                            const seriesKey = String(
+                                                item.dataKey ?? name,
+                                            );
                                             const transactionCount = Number(
-                                                item.payload?.[`${seriesKey}Transactions`] ?? 0,
+                                                item.payload?.[
+                                                    `${seriesKey}Transactions`
+                                                ] ?? 0,
                                             );
 
                                             return (
@@ -414,13 +477,18 @@ function RevenueChartCard({ revenueChart }: { revenueChart: RevenueChart }) {
                                                             className="h-2.5 w-2.5 rounded-xs"
                                                             style={{
                                                                 backgroundColor:
-                                                                    item.color ?? 'currentColor',
+                                                                    item.color ??
+                                                                    'currentColor',
                                                             }}
                                                         />
-                                                        {chartConfig[seriesKey]?.label ?? name}
+                                                        {chartConfig[seriesKey]
+                                                            ?.label ?? name}
                                                     </span>
                                                     <span className="font-mono text-muted-foreground">
-                                                        {formatCurrency(Number(value ?? 0))} ({transactionCount}
+                                                        {formatCurrency(
+                                                            Number(value ?? 0),
+                                                        )}{' '}
+                                                        ({transactionCount}
                                                         pcs)
                                                     </span>
                                                 </div>
@@ -492,17 +560,14 @@ export default function Dashboard({
                         description="Total of active CleanLab Customers"
                     />
                 </div>
+                <RevenueChartCard revenueChart={revenueChart} />
 
-                <div className="grid gap-4 xl:grid-cols-2">
-                    <RevenueChartCard revenueChart={revenueChart} />
-
-                    <TransactionTable
-                        title="Recent Transactions"
-                        description="The 5 latest transactions in the system."
-                        emptyState="There are no recent transactions yet."
-                        transactions={recentTransactions}
-                    />
-                </div>
+                <TransactionTable
+                    title="Recent Transactions"
+                    description="5 latest transactions in the system."
+                    emptyState="There are no recent transactions yet."
+                    transactions={recentTransactions}
+                />
             </div>
         </>
     );

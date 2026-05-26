@@ -6,6 +6,7 @@ use App\Models\Transactions;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia;
 
 uses(RefreshDatabase::class);
 
@@ -24,6 +25,26 @@ function transactionTestAdminUser(): User
 test('admin can view transactions index page', function () {
     $response = $this->actingAs(transactionTestAdminUser())->get(route('transactions.index'));
     $response->assertOk();
+});
+
+test('admin can see pagination metadata when transactions exceed one page', function () {
+    $admin = transactionTestAdminUser();
+
+    Transactions::factory()
+        ->count(11)
+        ->create([
+            'admin_id' => $admin->id,
+        ]);
+
+    $response = $this->actingAs($admin)->get(route('transactions.index'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (AssertableInertia $page) => $page
+            ->component('Admin/Transactions/Index')
+            ->where('transactions.last_page', 2)
+            ->has('transactions.data', 10)
+        );
 });
 
 test('admin can create a transaction', function () {

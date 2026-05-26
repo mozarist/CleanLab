@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     Ellipsis,
     PenSquare,
@@ -160,6 +160,8 @@ export default function Index({ services }: { services: any }) {
                                     <TableHead>Service Name</TableHead>
                                     <TableHead>Unit</TableHead>
                                     <TableHead>Price</TableHead>
+                                    <TableHead>Total Orders</TableHead>
+                                    <TableHead>Total Revenue</TableHead>
                                     <TableHead className="text-right" />
                                 </TableRow>
                             </TableHeader>
@@ -185,6 +187,15 @@ export default function Index({ services }: { services: any }) {
                                                 minimumFractionDigits: 0,
                                                 maximumFractionDigits: 2,
                                             }).format(service.price)}
+                                        </TableCell>
+                                        <TableCell>{Number(service.total_orders ?? 0)}</TableCell>
+                                        <TableCell>
+                                            Rp {''}
+                                            {new Intl.NumberFormat(undefined, {
+                                                style: 'decimal',
+                                                minimumFractionDigits: 0,
+                                                maximumFractionDigits: 2,
+                                            }).format(Number(service.total_revenue ?? 0))}
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
@@ -243,6 +254,40 @@ export default function Index({ services }: { services: any }) {
                         </Card>
                     )}
                 </div>
+
+                {services.last_page > 1 ? (
+                    <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+                        {services.links.map((link: any, index: number) => {
+                            const isDisabled = link.url === null;
+
+                            return (
+                                <Button
+                                    key={`${link.label}-${index}`}
+                                    variant={link.active ? 'default' : 'outline'}
+                                    size="sm"
+                                    asChild={!isDisabled}
+                                    disabled={isDisabled}
+                                >
+                                    {isDisabled ? (
+                                        <span
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Link href={link.url!} preserveScroll>
+                                            <span
+                                                dangerouslySetInnerHTML={{
+                                                    __html: link.label,
+                                                }}
+                                            />
+                                        </Link>
+                                    )}
+                                </Button>
+                            );
+                        })}
+                    </div>
+                ) : null}
 
                 <Sheet open={editOpen} onOpenChange={setEditOpen}>
                     <ServiceSheet

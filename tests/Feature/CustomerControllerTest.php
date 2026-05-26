@@ -1,9 +1,12 @@
 <?php
 
 use App\Models\Customer;
+use App\Models\Service;
+use App\Models\Transactions;
 use App\Models\User;
 use Database\Seeders\RoleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Inertia\Testing\AssertableInertia as Assert;
 
 uses(RefreshDatabase::class);
 
@@ -98,4 +101,60 @@ test('admin can delete a customer account and its profile', function () {
 
     expect($user->fresh())->toBeNull();
     expect($customer->fresh())->toBeNull();
+});
+
+test('admin can see total transactions for each customer on the index page', function () {
+    $admin = customerTestAdminUser();
+    $customer = Customer::factory()->create();
+    $service = Service::factory()->create();
+
+    Transactions::create([
+        'invoice_code' => 'INV-20260526-CCCCCC',
+        'admin_id' => $admin->id,
+        'customer_id' => $customer->id,
+        'service_id' => $service->id,
+        'quantity' => 1,
+        'total_price' => $service->price,
+        'status' => 'antrian',
+        'payment_method' => 'cash',
+        'payment_status' => 'paid',
+    ]);
+
+    Transactions::create([
+        'invoice_code' => 'INV-20260526-DDDDDD',
+        'admin_id' => $admin->id,
+        'customer_id' => $customer->id,
+        'service_id' => $service->id,
+        'quantity' => 2,
+        'total_price' => $service->price * 2,
+        'status' => 'antrian',
+        'payment_method' => 'cash',
+        'payment_status' => 'paid',
+    ]);
+
+    $response = $this->actingAs($admin)->get(route('customers.index'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/Customers/Index')
+            ->where('customers.data.0.total_transactions', 2)
+        );
+});
+
+test('admin can see the newest customers first with pagination on the index page', function () {
+    $admin = customerTestAdminUser();
+    $customers = Customer::factory()->count(11)->create();
+
+    $newestCustomer = $customers->last();
+
+    $response = $this->actingAs($admin)->get(route('customers.index'));
+
+    $response
+        ->assertOk()
+        ->assertInertia(fn (Assert $page) => $page
+            ->component('Admin/Customers/Index')
+            ->where('customers.last_page', 2)
+            ->where('customers.data.0.id', $newestCustomer->id)
+        );
 });

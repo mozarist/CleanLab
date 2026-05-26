@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import { UserRoundPlus, PenSquare, Trash2, Ellipsis } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
@@ -36,6 +36,7 @@ type Customer = {
     id: number;
     phone: string;
     address: string;
+    total_transactions: number;
     user: {
         id: number;
         name: string;
@@ -46,6 +47,15 @@ type Customer = {
 type PaginatedCustomers = {
     data: Customer[];
     from: number | null;
+    current_page: number;
+    per_page: number;
+    total: number;
+    last_page: number;
+    links: {
+        url: string | null;
+        label: string;
+        active: boolean;
+    }[];
 };
 
 type CustomerFormData = {
@@ -190,6 +200,7 @@ export default function Index({
                                     <TableHead>Email</TableHead>
                                     <TableHead>Phone</TableHead>
                                     <TableHead>Address</TableHead>
+                                    <TableHead>Total Transactions</TableHead>
                                     <TableHead className="text-right" />
                                 </TableRow>
                             </TableHeader>
@@ -197,7 +208,7 @@ export default function Index({
                                 {customers.data.map((customer, index) => (
                                     <TableRow key={customer.id}>
                                         <TableCell>
-                                            {(customers.from ?? 1) + index}
+                                            {customers.total - ((customers.current_page - 1) * customers.per_page + index)}
                                         </TableCell>
                                         <TableCell>
                                             {customer.user?.name ?? '-'}
@@ -207,6 +218,7 @@ export default function Index({
                                         </TableCell>
                                         <TableCell>{customer.phone}</TableCell>
                                         <TableCell>{customer.address}</TableCell>
+                                        <TableCell>{customer.total_transactions ?? 0}</TableCell>
                                         <TableCell className="text-right">
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
@@ -262,6 +274,40 @@ export default function Index({
                         </Card>
                     )}
                 </div>
+
+                {customers.last_page > 1 ? (
+                    <div className="flex flex-wrap justify-center gap-2 md:justify-start">
+                        {customers.links.map((link, index) => {
+                            const isDisabled = link.url === null;
+
+                            return (
+                                <Button
+                                    key={`${link.label}-${index}`}
+                                    variant={link.active ? 'default' : 'outline'}
+                                    size="sm"
+                                    asChild={!isDisabled}
+                                    disabled={isDisabled}
+                                >
+                                    {isDisabled ? (
+                                        <span
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Link href={link.url!} preserveScroll>
+                                            <span
+                                                dangerouslySetInnerHTML={{
+                                                    __html: link.label,
+                                                }}
+                                            />
+                                        </Link>
+                                    )}
+                                </Button>
+                            );
+                        })}
+                    </div>
+                ) : null}
 
                 <Sheet open={editOpen} onOpenChange={setEditOpen}>
                     <CustomerSheet

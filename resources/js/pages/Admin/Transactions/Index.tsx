@@ -1,4 +1,4 @@
-import { Head, router, useForm } from '@inertiajs/react';
+import { Head, Link, router, useForm } from '@inertiajs/react';
 import {
     CirclePlus,
     Ellipsis,
@@ -64,6 +64,12 @@ interface Transaction {
     };
 }
 
+interface PaginationLink {
+    url: string | null;
+    label: string;
+    active: boolean;
+}
+
 interface TransactionFormData {
     customer_id: number | '';
     service_id: number | '';
@@ -105,6 +111,8 @@ export default function Index({
         current_page: number;
         per_page: number;
         total: number;
+        last_page: number;
+        links: PaginationLink[];
     };
     customers: any[];
     services: any[];
@@ -326,6 +334,40 @@ export default function Index({
                         </Card>
                     )}
                 </div>
+
+                {transactions.last_page > 1 ? (
+                    <div className="flex items-center justify-center md:justify-start gap-2">
+                        {transactions.links.map((link, index) => {
+                            const isDisabled = link.url === null;
+
+                            return (
+                                <Button
+                                    key={`${link.label}-${index}`}
+                                    variant={link.active ? 'default' : 'outline'}
+                                    size="sm"
+                                    asChild={!isDisabled}
+                                    disabled={isDisabled}
+                                >
+                                    {isDisabled ? (
+                                        <span
+                                            dangerouslySetInnerHTML={{
+                                                __html: link.label,
+                                            }}
+                                        />
+                                    ) : (
+                                        <Link href={link.url!} preserveScroll>
+                                            <span
+                                                dangerouslySetInnerHTML={{
+                                                    __html: link.label,
+                                                }}
+                                            />
+                                        </Link>
+                                    )}
+                                </Button>
+                            );
+                        })}
+                    </div>
+                ) : null}
 
                 <Sheet open={editOpen} onOpenChange={setEditOpen}>
                     <TransactionSheet

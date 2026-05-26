@@ -131,6 +131,7 @@ class DashboardController extends Controller
             }
 
             $dayTransactions = $transactionsByDay->get($dateKey, collect());
+            $row['totalRevenue'] = (float) $dayTransactions->sum('total_price');
 
             foreach ($dayTransactions->groupBy(fn (Transactions $transaction): string => $this->revenueCategoryKey($transaction)) as $categoryKey => $categoryTransactions) {
                 $row[$categoryKey] = (float) $categoryTransactions->sum('total_price');

@@ -10,7 +10,11 @@ class ServiceController extends Controller
 {
     public function index()
     {
-        $services = Service::paginate(10);
+        $services = Service::query()
+            ->select('id', 'service_name', 'price', 'unit')
+            ->withCount(['transactions as total_orders'])
+            ->withSum('transactions as total_revenue', 'total_price')
+            ->paginate(10);
 
         return Inertia::render('Admin/Services/Index', [
             'services' => $services,
